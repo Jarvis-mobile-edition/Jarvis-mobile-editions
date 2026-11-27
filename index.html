@@ -10,7 +10,7 @@
   <meta name="description" content="J.A.R.V.I.S personal AI assistant for Boss">
   <title>J.A.R.V.I.S — Personal AI</title>
 
-  <link rel="stylesheet" href="style.css?v=jarvis-boss-20voices-v1">
+  <link rel="stylesheet" href="style.css?v=jarvis-boss-20voices-v2">
 
   <!-- Orbs Library -->
   <script src="https://cdn.jsdelivr.net/npm/orbs@latest/dist/orbs.min.js"></script>
@@ -108,7 +108,11 @@
             </svg>
           </button>
 
-          <span id="wake-status" style="font-size: 0.7rem; color: #00ffff; margin-right: 5px;">WAKE: ON</span>
+          <span id="wake-status" style="font-size: 0.7rem; color: #00ffff; margin-right: 2px;">WAKE: ON</span>
+
+          <button class="icon-button clear-button" id="topbar-settings-btn" type="button" aria-label="Open Settings" title="Settings &amp; Voices">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z"/></svg>
+          </button>
 
           <button class="icon-button clear-button" id="clear-btn" type="button" aria-label="Clear current conversation" title="Clear current conversation">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-.8 13H6.8L6 7m4 3v6m4-6v6"/></svg>
@@ -199,6 +203,6 @@
     </aside>
   </div>
 
-  <script src="script.js?v=jarvis-boss-20voices-v1"></script>
+  <script src="script.js?v=jarvis-boss-20voices-v2"></script>
 </body>
 </html>
