@@ -439,54 +439,93 @@ MEMORY.forEach(m =>
   add((m.role === 'user' ? 'YOU: ' : 'J.A.R.V.I.S: ') + m.text, m.role === 'user' ? 'user' : 'ai')
 );
 
-// ===== 3. 20-VOICE ENGINE (KANNADA & INDIAN ENGLISH) =====
-const VOICE_KEY = 'jarvis_selected_voice_v1';
+// ===== 3. 20 DISTINCT VOICES ENGINE (MULTI-ENGINE + PITCH/RATE) =====
+const VOICE_KEY = 'jarvis_selected_voice_v2';
 let AVAILABLE_VOICES = [];
 let isSpeaking = false;
 
+// Each preset targets a DIFFERENT distinct voice index across your device's installed TTS engines
+// plus dramatic pitch (0.55 - 1.65) and rate (0.80 - 1.28) variation so every option sounds unique!
 const VOICE_PRESETS = [
-  { id: 'v01', label: '01. Sweet Girl (Default)', gender: 'female', slot: 0, pitch: 1.18, rate: 0.98 },
-  { id: 'v02', label: '02. Soft Kannada Girl', gender: 'female', slot: 0, pitch: 1.12, rate: 0.94 },
-  { id: 'v03', label: '03. Cute Angel', gender: 'female', slot: 1, pitch: 1.28, rate: 1.02 },
-  { id: 'v04', label: '04. Gentle Priya', gender: 'female', slot: 1, pitch: 1.15, rate: 0.96 },
-  { id: 'v05', label: '05. Warm Kavya', gender: 'female', slot: 2, pitch: 1.08, rate: 0.95 },
-  { id: 'v06', label: '06. Cheerful Ananya', gender: 'female', slot: 2, pitch: 1.22, rate: 1.06 },
-  { id: 'v07', label: '07. Calm Meera', gender: 'female', slot: 3, pitch: 1.05, rate: 0.90 },
-  { id: 'v08', label: '08. Energetic Divya', gender: 'female', slot: 3, pitch: 1.20, rate: 1.12 },
-  { id: 'v09', label: '09. Melodic Shreya', gender: 'female', slot: 4, pitch: 1.24, rate: 0.97 },
-  { id: 'v10', label: '10. Velvet Nitya', gender: 'female', slot: 4, pitch: 1.02, rate: 0.92 },
-  { id: 'v11', label: '11. Bright Tara', gender: 'female', slot: 5, pitch: 1.32, rate: 1.04 },
-  { id: 'v12', label: '12. Royal Queen', gender: 'female', slot: 5, pitch: 0.98, rate: 0.93 },
-  { id: 'v13', label: '13. Classic J.A.R.V.I.S', gender: 'male', slot: 0, pitch: 0.95, rate: 1.00 },
-  { id: 'v14', label: '14. Deep Commander', gender: 'male', slot: 0, pitch: 0.82, rate: 0.95 },
-  { id: 'v15', label: '15. Friendly Arjun', gender: 'male', slot: 1, pitch: 1.04, rate: 1.02 },
-  { id: 'v16', label: '16. Calm Vikram', gender: 'male', slot: 1, pitch: 0.90, rate: 0.92 },
-  { id: 'v17', label: '17. Fast Tech AI', gender: 'female', slot: 0, pitch: 1.14, rate: 1.18 },
-  { id: 'v18', label: '18. Storyteller', gender: 'female', slot: 1, pitch: 1.10, rate: 0.86 },
-  { id: 'v19', label: '19. Crystal Assistant', gender: 'female', slot: 2, pitch: 1.26, rate: 1.00 },
-  { id: 'v20', label: '20. Ultra Deep Bass', gender: 'male', slot: 2, pitch: 0.74, rate: 0.94 }
+  { id: 'v01', label: '01. Sweet Girl (Kannada)',     voiceIdx: 0,  preferKn: true,  pitch: 1.32, rate: 0.98 },
+  { id: 'v02', label: '02. Cute High Girl',           voiceIdx: 1,  preferKn: true,  pitch: 1.55, rate: 1.05 },
+  { id: 'v03', label: '03. Soft Gentle Girl',         voiceIdx: 2,  preferKn: true,  pitch: 1.18, rate: 0.90 },
+  { id: 'v04', label: '04. Indian Girl (Priya)',      voiceIdx: 3,  preferKn: false, pitch: 1.28, rate: 0.98 },
+  { id: 'v05', label: '05. British Lady (Emma)',      voiceIdx: 4,  preferKn: false, pitch: 1.20, rate: 0.96 },
+  { id: 'v06', label: '06. American Girl (Aria)',     voiceIdx: 5,  preferKn: false, pitch: 1.25, rate: 1.02 },
+  { id: 'v07', label: '07. Cheerful Anime Girl',      voiceIdx: 6,  preferKn: false, pitch: 1.65, rate: 1.12 },
+  { id: 'v08', label: '08. Calm Meditation Lady',     voiceIdx: 7,  preferKn: false, pitch: 1.05, rate: 0.82 },
+  { id: 'v09', label: '09. Fast Smart Assistant',     voiceIdx: 8,  preferKn: false, pitch: 1.22, rate: 1.26 },
+  { id: 'v10', label: '10. Royal Queen Voice',        voiceIdx: 9,  preferKn: false, pitch: 0.92, rate: 0.90 },
+  { id: 'v11', label: '11. Classic Male J.A.R.V.I.S', voiceIdx: 10, preferKn: false, pitch: 0.85, rate: 0.98 },
+  { id: 'v12', label: '12. Deep Bass Commander',      voiceIdx: 11, preferKn: false, pitch: 0.62, rate: 0.92 },
+  { id: 'v13', label: '13. Friendly Young Guy',       voiceIdx: 12, preferKn: false, pitch: 1.02, rate: 1.04 },
+  { id: 'v14', label: '14. Kannada Male Voice',       voiceIdx: 13, preferKn: true,  pitch: 0.72, rate: 0.95 },
+  { id: 'v15', label: '15. Heavy Robot Titan',        voiceIdx: 14, preferKn: false, pitch: 0.55, rate: 0.86 },
+  { id: 'v16', label: '16. Energetic Radio Host',     voiceIdx: 15, preferKn: false, pitch: 1.15, rate: 1.18 },
+  { id: 'v17', label: '17. Storyteller Narrator',     voiceIdx: 16, preferKn: false, pitch: 0.95, rate: 0.84 },
+  { id: 'v18', label: '18. Crystal Whisper',          voiceIdx: 17, preferKn: false, pitch: 1.42, rate: 0.92 },
+  { id: 'v19', label: '19. News Anchor Pro',          voiceIdx: 18, preferKn: false, pitch: 0.98, rate: 1.08 },
+  { id: 'v20', label: '20. Chipmunk / Playful AI',    voiceIdx: 19, preferKn: false, pitch: 1.75, rate: 1.15 }
 ];
 
 let SELECTED_VOICE_ID = localStorage.getItem(VOICE_KEY) || 'v01';
-if (!VOICE_PRESETS.some(v => v.id === SELECTED_VOICE_ID)) {
-  SELECTED_VOICE_ID = 'v01';
+
+function buildDistinctVoicePool() {
+  if (!AVAILABLE_VOICES.length) return [];
+
+  // Put Kannada & Indian voices first, followed by all other distinct system voices
+  const knVoices = AVAILABLE_VOICES.filter(v => /^kn/i.test(v.lang));
+  const inVoices = AVAILABLE_VOICES.filter(v => /-(IN|LK)\b/i.test(v.lang) && !/^kn/i.test(v.lang));
+  const enVoices = AVAILABLE_VOICES.filter(v => /^en/i.test(v.lang) && !/-(IN|LK)\b/i.test(v.lang));
+  const otherVoices = AVAILABLE_VOICES.filter(
+    v => !/^kn/i.test(v.lang) && !/-(IN|LK)\b/i.test(v.lang) && !/^en/i.test(v.lang)
+  );
+
+  // Deduplicate by voiceURI
+  const seen = new Set();
+  const ordered = [];
+  [...knVoices, ...inVoices, ...enVoices, ...otherVoices].forEach(v => {
+    if (!seen.has(v.voiceURI)) {
+      seen.add(v.voiceURI);
+      ordered.push(v);
+    }
+  });
+  return ordered;
 }
 
 function populateVoiceSelector() {
   if (!voiceSelect) return;
+  const prevValue = voiceSelect.value || SELECTED_VOICE_ID;
   voiceSelect.replaceChildren();
-  VOICE_PRESETS.forEach(preset => {
+
+  const pool = buildDistinctVoicePool();
+
+  VOICE_PRESETS.forEach((preset, idx) => {
     const opt = document.createElement('option');
     opt.value = preset.id;
-    opt.textContent = preset.label;
+    const mappedVoice = pool.length ? pool[idx % pool.length] : null;
+    const engineTag = mappedVoice ? ` [${mappedVoice.lang}]` : '';
+    opt.textContent = preset.label + engineTag;
     voiceSelect.appendChild(opt);
   });
-  voiceSelect.value = SELECTED_VOICE_ID;
+
+  if (VOICE_PRESETS.some(v => v.id === prevValue)) {
+    voiceSelect.value = prevValue;
+    SELECTED_VOICE_ID = prevValue;
+  } else {
+    voiceSelect.value = 'v01';
+    SELECTED_VOICE_ID = 'v01';
+  }
 }
 
 function loadVoices() {
   if (!('speechSynthesis' in window)) return;
-  AVAILABLE_VOICES = window.speechSynthesis.getVoices() || [];
+  const voices = window.speechSynthesis.getVoices() || [];
+  if (voices.length) {
+    AVAILABLE_VOICES = voices;
+    populateVoiceSelector();
+  }
 }
 
 populateVoiceSelector();
@@ -497,38 +536,19 @@ if ('speechSynthesis' in window) {
 
 function resolveSystemVoiceForPreset(preset, hasKannadaScript) {
   if (!AVAILABLE_VOICES.length) loadVoices();
-  if (!AVAILABLE_VOICES.length) return null;
+  const pool = buildDistinctVoicePool();
+  if (!pool.length) return null;
 
-  const femaleHints = /female|woman|girl|sapna|swara|heera|neerja|priya|kavya|vani|lekha|veena|aditi|raveena|sangeeta|zira|aria|jenny|natasha|samantha|google/i;
-  const maleHints = /\b(male|man|ravi|prabhat|hemant|madhur|david|mark|alex|daniel|guy|ryan)\b/i;
-
-  const isPreferredGender = v =>
-    preset.gender === 'male'
-      ? maleHints.test(v.name) && !femaleHints.test(v.name)
-      : femaleHints.test(v.name) && !maleHints.test(v.name);
-
-  if (hasKannadaScript) {
-    const knVoices = AVAILABLE_VOICES.filter(v => /^kn/i.test(v.lang));
+  // If preset explicitly prefers Kannada and text contains Kannada script, use Kannada engine with distinct pitch/rate
+  if (preset.preferKn && hasKannadaScript) {
+    const knVoices = pool.filter(v => /^kn/i.test(v.lang));
     if (knVoices.length) {
-      const genderMatchedKn = knVoices.filter(isPreferredGender);
-      const pool = genderMatchedKn.length ? genderMatchedKn : knVoices;
-      return pool[preset.slot % pool.length];
+      return knVoices[preset.voiceIdx % knVoices.length];
     }
   }
 
-  const inVoices = AVAILABLE_VOICES.filter(v => /-(IN|LK)\b/i.test(v.lang) || /india/i.test(v.name));
-  const genderMatchedIn = inVoices.filter(isPreferredGender);
-  if (genderMatchedIn.length) {
-    return genderMatchedIn[preset.slot % genderMatchedIn.length];
-  }
-
-  const genderMatchedAny = AVAILABLE_VOICES.filter(isPreferredGender);
-  if (genderMatchedAny.length) {
-    return genderMatchedAny[preset.slot % genderMatchedAny.length];
-  }
-
-  const fallbackPool = inVoices.length ? inVoices : AVAILABLE_VOICES;
-  return fallbackPool[preset.slot % fallbackPool.length];
+  // Otherwise rotate across ALL installed system voices so every preset uses a genuinely different voice engine
+  return pool[preset.voiceIdx % pool.length];
 }
 
 function speakSweetly(rawText, onEndCallback = null) {
@@ -1043,13 +1063,16 @@ voiceSelect?.addEventListener('change', e => {
   SELECTED_VOICE_ID = e.target.value;
   localStorage.setItem(VOICE_KEY, SELECTED_VOICE_ID);
   const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID);
-  speakSweetly(`Yes ${USER_NAME}, ನನ್ನ ಧ್ವನಿ ಈಗ ${preset ? preset.label.replace(/^\d+\.\s*/, '') : 'updated'} ಆಗಿದೆ.`, () => {
+  const labelName = preset ? preset.label.replace(/^\d+\.\s*/, '') : 'updated';
+  speakSweetly(`Hello ${USER_NAME}! ನನ್ನ ಹೊಸ ಧ್ವನಿ ${labelName} ಆಗಿದೆ.`, () => {
     if (wakeModeEnabled) startWakeListener();
   });
 });
 
 testVoiceBtn?.addEventListener('click', () => {
-  speakSweetly(`ನಮಸ್ಕಾರ ${USER_NAME}! ನಾನು ಜಾರ್ವಿಸ್, ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧವಾಗಿದ್ದೇನೆ.`, () => {
+  const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID);
+  const labelName = preset ? preset.label.replace(/^\d+\.\s*/, '') : 'J.A.R.V.I.S';
+  speakSweetly(`Hello ${USER_NAME}, this is ${labelName}. ನಮಸ್ಕಾರ ${USER_NAME}, ನಾನು ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧವಾಗಿದ್ದೇನೆ.`, () => {
     if (wakeModeEnabled) startWakeListener();
   });
 });
