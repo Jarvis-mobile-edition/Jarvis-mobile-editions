@@ -1,6 +1,6 @@
 // ===== 1. API KEY & MODEL CONFIG =====
 const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
-const USER_NAME = 'Bharath';
+const USER_NAME = 'Boss';
 const GEMINI_SYSTEM_INSTRUCTION =
   `You are J.A.R.V.I.S, a warm, sweet, and helpful personal AI assistant for ${USER_NAME}. ` +
   `Always address the user as ${USER_NAME} naturally. Reply primarily in Kannada (ಕನ್ನಡ script) or a gentle Kannada-English mix depending on how ${USER_NAME} speaks, keeping replies concise, polite, and easy to speak aloud. If you do not know something, say so plainly in Kannada.`;
