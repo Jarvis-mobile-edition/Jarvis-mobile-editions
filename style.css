@@ -100,15 +100,17 @@ body.has-conversation .chat{display:flex;flex-direction:column}
 .thinking-dots i:nth-child(2){animation-delay:.13s}.thinking-dots i:nth-child(3){animation-delay:.26s}
 .sidebar-backdrop{display:none}
 .settings-scrim{position:fixed;inset:0;z-index:49;background:rgba(3,5,9,.52);backdrop-filter:blur(4px)}
-.settings-panel{position:fixed;z-index:50;top:0;right:0;display:flex;flex-direction:column;width:min(390px,100vw);height:100dvh;padding:26px 22px;background:var(--panel);border-left:1px solid var(--border-strong);box-shadow:var(--shadow);animation:settingsIn .24s ease both}
-.settings-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.settings-panel{position:fixed;z-index:50;top:0;right:0;display:flex;flex-direction:column;width:min(390px,100vw);height:100dvh;padding:24px 22px;background:var(--panel);border-left:1px solid var(--border-strong);box-shadow:var(--shadow);overflow-y:auto;animation:settingsIn .24s ease both}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--border)}
 .settings-header .eyebrow{justify-content:flex-start;margin-bottom:5px}
 .settings-header h2{margin:0;font-size:22px;letter-spacing:-.03em}
-.settings-group{padding:22px 0;border-bottom:1px solid var(--border)}
+.settings-group{padding:18px 0;border-bottom:1px solid var(--border)}
 .settings-group label,.settings-group strong{display:block;margin-bottom:4px;color:var(--text);font-size:13px;font-weight:650}
-.settings-group p{margin:0 0 13px;color:var(--muted);font-size:12px;line-height:1.6}
+.settings-group p{margin:0 0 11px;color:var(--muted);font-size:12px;line-height:1.55}
 .settings-group select{width:100%;padding:11px 12px;border:1px solid var(--border-strong);border-radius:11px;background:var(--panel-2);color:var(--text)}
-.settings-bottom{display:grid;gap:12px;margin-top:auto;padding-top:24px}
+.voice-test-button{margin-top:10px;width:100%;padding:10px 12px;border:1px solid rgba(0,255,255,.32);border-radius:11px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;text-align:center;transition:background .16s ease,border-color .16s ease}
+.voice-test-button:hover{background:rgba(0,255,255,.2);border-color:rgba(0,255,255,.55)}
+.settings-bottom{display:grid;gap:12px;margin-top:auto;padding-top:20px}
 .danger-button{padding:11px 13px;border:1px solid rgba(255,140,154,.25);border-radius:11px;background:rgba(255,140,154,.08);color:var(--danger);text-align:left;font-size:12px;font-weight:600}
 .danger-button:hover{background:rgba(255,140,154,.14)}
 .settings-bottom p{margin:0;color:var(--subtle);font-size:10px}
