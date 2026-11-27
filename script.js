@@ -158,6 +158,7 @@ const menuButton = document.getElementById('menu-btn');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebarBackdrop = document.getElementById('sidebar-backdrop');
 const settingsOpen = document.getElementById('settings-open');
+const topbarSettingsBtn = document.getElementById('topbar-settings-btn');
 const settingsClose = document.getElementById('settings-close');
 const settingsPanel = document.getElementById('settings-panel');
 const settingsScrim = document.getElementById('settings-scrim');
@@ -1028,6 +1029,7 @@ menuButton?.addEventListener('click', toggleSidebar);
 sidebarToggle?.addEventListener('click', toggleSidebar);
 sidebarBackdrop?.addEventListener('click', closeSidebarOnMobile);
 settingsOpen?.addEventListener('click', openSettings);
+topbarSettingsBtn?.addEventListener('click', openSettings);
 settingsClose?.addEventListener('click', closeSettings);
 settingsScrim?.addEventListener('click', closeSettings);
 clearMemorySetting?.addEventListener('click', () => {
