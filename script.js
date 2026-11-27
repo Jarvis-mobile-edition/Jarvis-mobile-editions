@@ -162,6 +162,8 @@ const settingsClose = document.getElementById('settings-close');
 const settingsPanel = document.getElementById('settings-panel');
 const settingsScrim = document.getElementById('settings-scrim');
 const themeSelect = document.getElementById('theme-select');
+const voiceSelect = document.getElementById('voice-select');
+const testVoiceBtn = document.getElementById('test-voice-btn');
 const clearMemorySetting = document.getElementById('clear-memory-setting');
 const thinkingStatus = document.getElementById('thinking-status');
 const thinkingLabel = document.getElementById('thinking-label');
@@ -436,42 +438,96 @@ MEMORY.forEach(m =>
   add((m.role === 'user' ? 'YOU: ' : 'J.A.R.V.I.S: ') + m.text, m.role === 'user' ? 'user' : 'ai')
 );
 
-// ===== 3. SWEET FEMALE VOICE ENGINE (KANNADA & INDIAN ENGLISH) =====
+// ===== 3. 20-VOICE ENGINE (KANNADA & INDIAN ENGLISH) =====
+const VOICE_KEY = 'jarvis_selected_voice_v1';
 let AVAILABLE_VOICES = [];
 let isSpeaking = false;
+
+const VOICE_PRESETS = [
+  { id: 'v01', label: '01. Sweet Girl (Default)', gender: 'female', slot: 0, pitch: 1.18, rate: 0.98 },
+  { id: 'v02', label: '02. Soft Kannada Girl', gender: 'female', slot: 0, pitch: 1.12, rate: 0.94 },
+  { id: 'v03', label: '03. Cute Angel', gender: 'female', slot: 1, pitch: 1.28, rate: 1.02 },
+  { id: 'v04', label: '04. Gentle Priya', gender: 'female', slot: 1, pitch: 1.15, rate: 0.96 },
+  { id: 'v05', label: '05. Warm Kavya', gender: 'female', slot: 2, pitch: 1.08, rate: 0.95 },
+  { id: 'v06', label: '06. Cheerful Ananya', gender: 'female', slot: 2, pitch: 1.22, rate: 1.06 },
+  { id: 'v07', label: '07. Calm Meera', gender: 'female', slot: 3, pitch: 1.05, rate: 0.90 },
+  { id: 'v08', label: '08. Energetic Divya', gender: 'female', slot: 3, pitch: 1.20, rate: 1.12 },
+  { id: 'v09', label: '09. Melodic Shreya', gender: 'female', slot: 4, pitch: 1.24, rate: 0.97 },
+  { id: 'v10', label: '10. Velvet Nitya', gender: 'female', slot: 4, pitch: 1.02, rate: 0.92 },
+  { id: 'v11', label: '11. Bright Tara', gender: 'female', slot: 5, pitch: 1.32, rate: 1.04 },
+  { id: 'v12', label: '12. Royal Queen', gender: 'female', slot: 5, pitch: 0.98, rate: 0.93 },
+  { id: 'v13', label: '13. Classic J.A.R.V.I.S', gender: 'male', slot: 0, pitch: 0.95, rate: 1.00 },
+  { id: 'v14', label: '14. Deep Commander', gender: 'male', slot: 0, pitch: 0.82, rate: 0.95 },
+  { id: 'v15', label: '15. Friendly Arjun', gender: 'male', slot: 1, pitch: 1.04, rate: 1.02 },
+  { id: 'v16', label: '16. Calm Vikram', gender: 'male', slot: 1, pitch: 0.90, rate: 0.92 },
+  { id: 'v17', label: '17. Fast Tech AI', gender: 'female', slot: 0, pitch: 1.14, rate: 1.18 },
+  { id: 'v18', label: '18. Storyteller', gender: 'female', slot: 1, pitch: 1.10, rate: 0.86 },
+  { id: 'v19', label: '19. Crystal Assistant', gender: 'female', slot: 2, pitch: 1.26, rate: 1.00 },
+  { id: 'v20', label: '20. Ultra Deep Bass', gender: 'male', slot: 2, pitch: 0.74, rate: 0.94 }
+];
+
+let SELECTED_VOICE_ID = localStorage.getItem(VOICE_KEY) || 'v01';
+if (!VOICE_PRESETS.some(v => v.id === SELECTED_VOICE_ID)) {
+  SELECTED_VOICE_ID = 'v01';
+}
+
+function populateVoiceSelector() {
+  if (!voiceSelect) return;
+  voiceSelect.replaceChildren();
+  VOICE_PRESETS.forEach(preset => {
+    const opt = document.createElement('option');
+    opt.value = preset.id;
+    opt.textContent = preset.label;
+    voiceSelect.appendChild(opt);
+  });
+  voiceSelect.value = SELECTED_VOICE_ID;
+}
 
 function loadVoices() {
   if (!('speechSynthesis' in window)) return;
   AVAILABLE_VOICES = window.speechSynthesis.getVoices() || [];
 }
 
+populateVoiceSelector();
 loadVoices();
 if ('speechSynthesis' in window) {
   window.speechSynthesis.onvoiceschanged = loadVoices;
 }
 
-function pickSweetFemaleVoice(hasKannadaScript) {
+function resolveSystemVoiceForPreset(preset, hasKannadaScript) {
   if (!AVAILABLE_VOICES.length) loadVoices();
   if (!AVAILABLE_VOICES.length) return null;
 
   const femaleHints = /female|woman|girl|sapna|swara|heera|neerja|priya|kavya|vani|lekha|veena|aditi|raveena|sangeeta|zira|aria|jenny|natasha|samantha|google/i;
-  const maleHints = /\b(male|man|ravi|prabhat|hemant|madhur|david|mark|alex|daniel)\b/i;
+  const maleHints = /\b(male|man|ravi|prabhat|hemant|madhur|david|mark|alex|daniel|guy|ryan)\b/i;
+
+  const isPreferredGender = v =>
+    preset.gender === 'male'
+      ? maleHints.test(v.name) && !femaleHints.test(v.name)
+      : femaleHints.test(v.name) && !maleHints.test(v.name);
 
   if (hasKannadaScript) {
     const knVoices = AVAILABLE_VOICES.filter(v => /^kn/i.test(v.lang));
-    const knFemale = knVoices.find(v => femaleHints.test(v.name) && !maleHints.test(v.name));
-    if (knFemale) return knFemale;
-    if (knVoices.length) return knVoices[0];
+    if (knVoices.length) {
+      const genderMatchedKn = knVoices.filter(isPreferredGender);
+      const pool = genderMatchedKn.length ? genderMatchedKn : knVoices;
+      return pool[preset.slot % pool.length];
+    }
   }
 
   const inVoices = AVAILABLE_VOICES.filter(v => /-(IN|LK)\b/i.test(v.lang) || /india/i.test(v.name));
-  const inFemale = inVoices.find(v => femaleHints.test(v.name) && !maleHints.test(v.name));
-  if (inFemale) return inFemale;
+  const genderMatchedIn = inVoices.filter(isPreferredGender);
+  if (genderMatchedIn.length) {
+    return genderMatchedIn[preset.slot % genderMatchedIn.length];
+  }
 
-  const anyFemale = AVAILABLE_VOICES.find(v => femaleHints.test(v.name) && !maleHints.test(v.name));
-  if (anyFemale) return anyFemale;
+  const genderMatchedAny = AVAILABLE_VOICES.filter(isPreferredGender);
+  if (genderMatchedAny.length) {
+    return genderMatchedAny[preset.slot % genderMatchedAny.length];
+  }
 
-  return inVoices[0] || AVAILABLE_VOICES[0];
+  const fallbackPool = inVoices.length ? inVoices : AVAILABLE_VOICES;
+  return fallbackPool[preset.slot % fallbackPool.length];
 }
 
 function speakSweetly(rawText, onEndCallback = null) {
@@ -492,9 +548,10 @@ function speakSweetly(rawText, onEndCallback = null) {
 
   window.speechSynthesis.cancel();
 
+  const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID) || VOICE_PRESETS[0];
   const hasKannada = /[\u0C80-\u0CFF]/.test(cleanText);
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  const chosenVoice = pickSweetFemaleVoice(hasKannada);
+  const chosenVoice = resolveSystemVoiceForPreset(preset, hasKannada);
 
   if (chosenVoice) {
     utterance.voice = chosenVoice;
@@ -503,8 +560,8 @@ function speakSweetly(rawText, onEndCallback = null) {
     utterance.lang = hasKannada ? 'kn-IN' : 'en-IN';
   }
 
-  utterance.pitch = 1.18;
-  utterance.rate = 0.98;
+  utterance.pitch = preset.pitch;
+  utterance.rate = preset.rate;
   utterance.volume = 1.0;
 
   isSpeaking = true;
@@ -979,6 +1036,21 @@ clearMemorySetting?.addEventListener('click', () => {
 });
 
 themeSelect?.addEventListener('change', e => applyTheme(e.target.value));
+
+voiceSelect?.addEventListener('change', e => {
+  SELECTED_VOICE_ID = e.target.value;
+  localStorage.setItem(VOICE_KEY, SELECTED_VOICE_ID);
+  const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID);
+  speakSweetly(`Yes ${USER_NAME}, ನನ್ನ ಧ್ವನಿ ಈಗ ${preset ? preset.label.replace(/^\d+\.\s*/, '') : 'updated'} ಆಗಿದೆ.`, () => {
+    if (wakeModeEnabled) startWakeListener();
+  });
+});
+
+testVoiceBtn?.addEventListener('click', () => {
+  speakSweetly(`ನಮಸ್ಕಾರ ${USER_NAME}! ನಾನು ಜಾರ್ವಿಸ್, ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧವಾಗಿದ್ದೇನೆ.`, () => {
+    if (wakeModeEnabled) startWakeListener();
+  });
+});
 
 document.querySelectorAll('.prompt-card').forEach(card => {
   card.addEventListener('click', () => {
