@@ -10,7 +10,7 @@
   <meta name="description" content="J.A.R.V.I.S personal AI assistant for Boss">
   <title>J.A.R.V.I.S — Personal AI</title>
 
-  <link rel="stylesheet" href="style.css?v=jarvis-boss-kn-v1">
+  <link rel="stylesheet" href="style.css?v=jarvis-boss-20voices-v1">
 
   <!-- Orbs Library -->
   <script src="https://cdn.jsdelivr.net/npm/orbs@latest/dist/orbs.min.js"></script>
@@ -170,13 +170,35 @@
     <div class="settings-scrim" id="settings-scrim" hidden></div>
     <aside class="settings-panel" id="settings-panel" aria-labelledby="settings-title" aria-modal="true" role="dialog" hidden>
       <div class="settings-header"><div><p class="eyebrow">PREFERENCES</p><h2 id="settings-title">Settings</h2></div><button class="icon-button" id="settings-close" type="button" aria-label="Close settings">×</button></div>
-      <div class="settings-group"><label for="theme-select">Appearance</label><p>Set the tone of your workspace.</p><select id="theme-select"><option value="dark">Midnight · dark</option><option value="light">Silver · light</option></select></div>
-      <div class="settings-group"><strong>Voice &amp; Language</strong><p>Configured for Boss in Kannada (kn-IN) with sweet female voice synthesis and automatic hands-free "Jarvis" wake-word detection.</p></div>
-      <div class="settings-group"><strong>Conversation history</strong><p>Your conversations are saved in this browser profile.</p></div>
-      <div class="settings-bottom"><button class="danger-button" id="clear-memory-setting" type="button">Clear current conversation</button><p>J.A.R.V.I.S · Personal AI for Boss</p></div>
+
+      <div class="settings-group">
+        <label for="theme-select">Appearance</label>
+        <p>Set the tone of your workspace.</p>
+        <select id="theme-select">
+          <option value="dark">Midnight · dark</option>
+          <option value="light">Silver · light</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
+        <label for="voice-select">Assistant Voice (20 Voices)</label>
+        <p>Choose from 20 voice styles for J.A.R.V.I.S (Kannada &amp; English).</p>
+        <select id="voice-select"></select>
+        <button class="voice-test-button" id="test-voice-btn" type="button">▶ Test Selected Voice</button>
+      </div>
+
+      <div class="settings-group">
+        <strong>Conversation history</strong>
+        <p>Your conversations are saved in this browser profile.</p>
+      </div>
+
+      <div class="settings-bottom">
+        <button class="danger-button" id="clear-memory-setting" type="button">Clear current conversation</button>
+        <p>J.A.R.V.I.S · Personal AI for Boss</p>
+      </div>
     </aside>
   </div>
 
-  <script src="script.js?v=jarvis-boss-kn-v1"></script>
+  <script src="script.js?v=jarvis-boss-20voices-v1"></script>
 </body>
 </html>
