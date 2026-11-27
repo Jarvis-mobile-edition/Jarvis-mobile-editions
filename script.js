@@ -16,16 +16,6 @@ if (!API_KEY) {
   localStorage.setItem('jarvis_key', API_KEY);
 }
 
-function promptForNewApiKey() {
-  const entered = prompt('Enter or update your Gemini API Key:', API_KEY || '');
-  if (entered && entered.trim()) {
-    API_KEY = entered.trim();
-    localStorage.setItem('jarvis_key', API_KEY);
-    return true;
-  }
-  return false;
-}
-
 function extractGeminiText(data) {
   const parts = data?.candidates?.[0]?.content?.parts;
   if (Array.isArray(parts)) {
@@ -169,7 +159,6 @@ const clearMemorySetting = document.getElementById('clear-memory-setting');
 const thinkingStatus = document.getElementById('thinking-status');
 const thinkingLabel = document.getElementById('thinking-label');
 
-// Initialize Live Orb if library is loaded
 (function initOrb() {
   const container = document.getElementById('jarvis-core-container');
   if (container && window.Orbs) {
@@ -179,9 +168,7 @@ const thinkingLabel = document.getElementById('thinking-label');
         secondaryColor: '#79c9ff',
         speed: 1.2
       });
-    } catch (e) {
-      console.warn('Orb initialization skipped:', e);
-    }
+    } catch (e) {}
   }
 })();
 
@@ -439,13 +426,11 @@ MEMORY.forEach(m =>
   add((m.role === 'user' ? 'YOU: ' : 'J.A.R.V.I.S: ') + m.text, m.role === 'user' ? 'user' : 'ai')
 );
 
-// ===== 3. 20 DISTINCT VOICES ENGINE (MULTI-ENGINE + PITCH/RATE) =====
+// ===== 3. 20 DISTINCT VOICES ENGINE =====
 const VOICE_KEY = 'jarvis_selected_voice_v2';
 let AVAILABLE_VOICES = [];
 let isSpeaking = false;
 
-// Each preset targets a DIFFERENT distinct voice index across your device's installed TTS engines
-// plus dramatic pitch (0.55 - 1.65) and rate (0.80 - 1.28) variation so every option sounds unique!
 const VOICE_PRESETS = [
   { id: 'v01', label: '01. Sweet Girl (Kannada)',     voiceIdx: 0,  preferKn: true,  pitch: 1.32, rate: 0.98 },
   { id: 'v02', label: '02. Cute High Girl',           voiceIdx: 1,  preferKn: true,  pitch: 1.55, rate: 1.05 },
@@ -473,16 +458,12 @@ let SELECTED_VOICE_ID = localStorage.getItem(VOICE_KEY) || 'v01';
 
 function buildDistinctVoicePool() {
   if (!AVAILABLE_VOICES.length) return [];
-
-  // Put Kannada & Indian voices first, followed by all other distinct system voices
   const knVoices = AVAILABLE_VOICES.filter(v => /^kn/i.test(v.lang));
   const inVoices = AVAILABLE_VOICES.filter(v => /-(IN|LK)\b/i.test(v.lang) && !/^kn/i.test(v.lang));
   const enVoices = AVAILABLE_VOICES.filter(v => /^en/i.test(v.lang) && !/-(IN|LK)\b/i.test(v.lang));
   const otherVoices = AVAILABLE_VOICES.filter(
     v => !/^kn/i.test(v.lang) && !/-(IN|LK)\b/i.test(v.lang) && !/^en/i.test(v.lang)
   );
-
-  // Deduplicate by voiceURI
   const seen = new Set();
   const ordered = [];
   [...knVoices, ...inVoices, ...enVoices, ...otherVoices].forEach(v => {
@@ -498,7 +479,6 @@ function populateVoiceSelector() {
   if (!voiceSelect) return;
   const prevValue = voiceSelect.value || SELECTED_VOICE_ID;
   voiceSelect.replaceChildren();
-
   const pool = buildDistinctVoicePool();
 
   VOICE_PRESETS.forEach((preset, idx) => {
@@ -539,15 +519,12 @@ function resolveSystemVoiceForPreset(preset, hasKannadaScript) {
   const pool = buildDistinctVoicePool();
   if (!pool.length) return null;
 
-  // If preset explicitly prefers Kannada and text contains Kannada script, use Kannada engine with distinct pitch/rate
   if (preset.preferKn && hasKannadaScript) {
     const knVoices = pool.filter(v => /^kn/i.test(v.lang));
     if (knVoices.length) {
       return knVoices[preset.voiceIdx % knVoices.length];
     }
   }
-
-  // Otherwise rotate across ALL installed system voices so every preset uses a genuinely different voice engine
   return pool[preset.voiceIdx % pool.length];
 }
 
@@ -729,6 +706,20 @@ async function handleTools(text) {
 // ===== 5. CORE MESSAGE SEND PIPELINE =====
 let isSending = false;
 
+// Matches English & Kannada transliterations of "Jarvis" without \b issues
+const WAKE_WORD_REGEX = /(?:hey\s+|ok\s+|hi\s+|hello\s+|ಹೇ\s+|ಹಾಯ್\s+)?(?:jarvis|jarvish|jervis|jarves|ಜಾರ್ವಿಸ್‌?|ಜಾರ್ವಿಶ್‌?|ಜರ್ವಿಸ್‌?)/i;
+
+function isWakeWordOnly(text) {
+  const stripped = text.replace(WAKE_WORD_REGEX, '').replace(/[\s.!?,:;-]+/g, '').trim();
+  return WAKE_WORD_REGEX.test(text) && stripped.length === 0;
+}
+
+function stripLeadingWakeWord(text) {
+  return text
+    .replace(/^(?:hey\s+|ok\s+|hi\s+|hello\s+|ಹೇ\s+|ಹಾಯ್\s+)?(?:jarvis|jarvish|jervis|jarves|ಜಾರ್ವಿಸ್‌?|ಜಾರ್ವಿಶ್‌?|ಜರ್ವಿಸ್‌?)[\s.!?,:;-]*/i, '')
+    .trim();
+}
+
 async function sendMessage(overrideText = null, imagePart = null) {
   if (isSending) return;
   const raw = overrideText !== null ? String(overrideText) : (input ? input.value : '');
@@ -740,8 +731,7 @@ async function sendMessage(overrideText = null, imagePart = null) {
     input.style.height = 'auto';
   }
 
-  const wakeOnlyMatch = text.match(/^(?:hey\s+|ok\s+|hi\s+|hello\s+)?(?:jarvis|ಜಾರ್ವಿಸ್)[.!?,]*$/i);
-  if (wakeOnlyMatch && !imagePart) {
+  if (isWakeWordOnly(text) && !imagePart) {
     add('YOU: ' + text, 'user');
     const wakeReply = `Yes ${USER_NAME}! ನಾನು ಕೇಳುತ್ತಿದ್ದೇನೆ. ಹೇಳಿ ${USER_NAME}, ಈಗ ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?`;
     const replyNode = add('J.A.R.V.I.S: ' + wakeReply, 'ai');
@@ -750,12 +740,12 @@ async function sendMessage(overrideText = null, imagePart = null) {
     saveMemory();
     setReply(replyNode, 'J.A.R.V.I.S: ' + wakeReply);
     speakSweetly(wakeReply, () => {
-      if (wakeModeEnabled) startWakeListener();
+      if (wakeModeEnabled) scheduleWakeRestart(150);
     });
     return;
   }
 
-  const cleanedCommand = text.replace(/^(?:hey\s+|ok\s+|hi\s+)?(?:jarvis|ಜಾರ್ವಿಸ್)[,\s:!-]+/i, '').trim() || text;
+  const cleanedCommand = stripLeadingWakeWord(text) || text;
 
   add('YOU: ' + text, 'user');
   MEMORY.push({ role: 'user', text });
@@ -782,13 +772,13 @@ async function sendMessage(overrideText = null, imagePart = null) {
     saveMemory();
     setReply(replyNode, 'J.A.R.V.I.S: ' + reply);
     speakSweetly(reply, () => {
-      if (wakeModeEnabled) startWakeListener();
+      if (wakeModeEnabled) scheduleWakeRestart(150);
     });
   } catch (err) {
     const errText = `ಕ್ಷಮಿಸಿ ${USER_NAME}, ದೋಷ ಸಂಭವಿಸಿದೆ: ${err?.message || 'Unknown error'}`;
     setReply(replyNode, 'J.A.R.V.I.S: ' + errText);
     speakSweetly(errText, () => {
-      if (wakeModeEnabled) startWakeListener();
+      if (wakeModeEnabled) scheduleWakeRestart(150);
     });
   } finally {
     isSending = false;
@@ -797,11 +787,12 @@ async function sendMessage(overrideText = null, imagePart = null) {
   }
 }
 
-// ===== 6. AUTOMATIC HANDS-FREE WAKE-WORD LISTENER (NO MIC TAP REQUIRED) =====
+// ===== 6. MOBILE-RELIABLE WAKE-WORD & VOICE COMMAND ENGINE =====
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let wakeModeEnabled = true;
 let wakeRecognition = null;
 let wakeStarting = false;
+let wakeRestartTimer = null;
 let singleRecognition = null;
 let awaitingCommandAfterWake = false;
 let wakeCommandTimer = null;
@@ -817,24 +808,41 @@ function updateWakeUI(active, labelText = null) {
 
 function stopWakeListener() {
   wakeStarting = false;
+  clearTimeout(wakeRestartTimer);
   if (wakeRecognition) {
     try {
+      wakeRecognition.onresult = null;
+      wakeRecognition.onerror = null;
       wakeRecognition.onend = null;
-      wakeRecognition.stop();
+      wakeRecognition.abort();
     } catch (e) {}
     wakeRecognition = null;
   }
 }
 
+function scheduleWakeRestart(delayMs = 200) {
+  clearTimeout(wakeRestartTimer);
+  if (!wakeModeEnabled || isSpeaking || isSending || singleRecognition) return;
+  wakeRestartTimer = setTimeout(() => {
+    if (wakeModeEnabled && !isSpeaking && !isSending && !singleRecognition) {
+      startWakeListener();
+    }
+  }, delayMs);
+}
+
 function startWakeListener() {
-  if (!SpeechRecognition || !wakeModeEnabled || isSpeaking || isSending || wakeStarting) return;
+  if (!SpeechRecognition || !wakeModeEnabled || isSpeaking || isSending || wakeStarting || singleRecognition) return;
   stopWakeListener();
   wakeStarting = true;
 
   const rec = new SpeechRecognition();
-  rec.lang = 'kn-IN';
-  rec.continuous = true;
+  // Use en-IN for reliable "Jarvis" + Indian English & Kannada phonetic capture
+  rec.lang = 'en-IN';
+  rec.continuous = false; // Single-utterance loop prevents Android Chrome silent freezes
   rec.interimResults = true;
+  rec.maxAlternatives = 3;
+
+  let handledThisSession = false;
 
   rec.onstart = () => {
     wakeStarting = false;
@@ -842,35 +850,52 @@ function startWakeListener() {
   };
 
   rec.onresult = event => {
+    if (handledThisSession) return;
+
     let finalTranscript = '';
     let interimTranscript = '';
+    let allAlternativesText = '';
 
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      const piece = event.results[i][0]?.transcript || '';
-      if (event.results[i].isFinal) {
-        finalTranscript += piece;
+      const result = event.results[i];
+      const primary = result[0]?.transcript || '';
+      if (result.isFinal) {
+        finalTranscript += ' ' + primary;
       } else {
-        interimTranscript += piece;
+        interimTranscript += ' ' + primary;
+      }
+      for (let a = 0; a < result.length; a++) {
+        allAlternativesText += ' ' + (result[a]?.transcript || '');
       }
     }
 
+    finalTranscript = finalTranscript.trim();
+    interimTranscript = interimTranscript.trim();
     const combined = (finalTranscript || interimTranscript).trim();
-    if (!combined) return;
 
-    const jarvisRegex = /\b(?:jarvis|jarvish|jervis|ಜಾರ್ವಿಸ್)\b/i;
+    if (combined) {
+      updateWakeUI(true, 'HEARD: ' + combined.slice(0, 18));
+    }
 
-    if (awaitingCommandAfterWake && finalTranscript.trim()) {
+    // Case 1: Already awake and waiting for command
+    if (awaitingCommandAfterWake && finalTranscript) {
+      handledThisSession = true;
       clearTimeout(wakeCommandTimer);
       awaitingCommandAfterWake = false;
       stopWakeListener();
-      sendMessage(finalTranscript.trim());
+      const command = stripLeadingWakeWord(finalTranscript) || finalTranscript;
+      sendMessage(command);
       return;
     }
 
-    if (finalTranscript && jarvisRegex.test(finalTranscript)) {
-      const afterWake = finalTranscript.replace(/^.*?\b(?:jarvis|jarvish|jervis|ಜಾರ್ವಿಸ್)\b[,\s:!-]*/i, '').trim();
+    // Case 2: Heard "Jarvis" in final transcript (or any alternative)
+    const heardWakeFinal = finalTranscript && (WAKE_WORD_REGEX.test(finalTranscript) || WAKE_WORD_REGEX.test(allAlternativesText));
+    if (heardWakeFinal) {
+      handledThisSession = true;
+      const afterWake = stripLeadingWakeWord(finalTranscript);
       stopWakeListener();
-      if (afterWake) {
+
+      if (afterWake && !isWakeWordOnly(finalTranscript)) {
         awaitingCommandAfterWake = false;
         sendMessage(afterWake);
       } else {
@@ -880,32 +905,40 @@ function startWakeListener() {
         add('YOU: Jarvis', 'user');
         add('J.A.R.V.I.S: ' + greet, 'ai');
         speakSweetly(greet, () => {
-          if (wakeModeEnabled) startWakeListener();
+          if (wakeModeEnabled) scheduleWakeRestart(100);
         });
         clearTimeout(wakeCommandTimer);
         wakeCommandTimer = setTimeout(() => {
           awaitingCommandAfterWake = false;
           if (wakeModeEnabled) updateWakeUI(true, 'WAKE: ON');
-        }, 12000);
+        }, 15000);
       }
-    } else if (!finalTranscript && jarvisRegex.test(interimTranscript)) {
+      return;
+    }
+
+    // Case 3: Heard "Jarvis" alone in interim speech -> wake immediately if user pauses
+    if (!finalTranscript && WAKE_WORD_REGEX.test(interimTranscript)) {
       updateWakeUI(true, 'HEARD JARVIS!');
     }
   };
 
   rec.onerror = event => {
     wakeStarting = false;
+    wakeRecognition = null;
     if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-      updateWakeUI(false, 'ALLOW MIC IN BROWSER');
+      updateWakeUI(false, 'TAP SCREEN / ALLOW MIC');
+      return;
+    }
+    if (wakeModeEnabled && !isSpeaking && !isSending) {
+      scheduleWakeRestart(event.error === 'no-speech' ? 120 : 500);
     }
   };
 
   rec.onend = () => {
     wakeStarting = false;
-    if (wakeModeEnabled && !isSpeaking && !isSending) {
-      setTimeout(() => {
-        if (wakeModeEnabled && !isSpeaking && !isSending) startWakeListener();
-      }, 250);
+    wakeRecognition = null;
+    if (wakeModeEnabled && !isSpeaking && !isSending && !handledThisSession) {
+      scheduleWakeRestart(120);
     }
   };
 
@@ -914,6 +947,8 @@ function startWakeListener() {
     rec.start();
   } catch (e) {
     wakeStarting = false;
+    wakeRecognition = null;
+    updateWakeUI(false, 'TAP SCREEN TO WAKE');
   }
 }
 
@@ -925,7 +960,7 @@ function autoActivateHandsFree() {
   updateWakeUI(true, 'WAKE: ON');
   startWakeListener();
 
-  const unlockOnFirstInteraction = () => {
+  const unlockAudioAndMic = () => {
     if ('speechSynthesis' in window) {
       try {
         const silent = new SpeechSynthesisUtterance('');
@@ -933,22 +968,19 @@ function autoActivateHandsFree() {
         window.speechSynthesis.speak(silent);
       } catch (e) {}
     }
-    if (wakeModeEnabled && !wakeRecognition && !isSpeaking && !isSending) {
+    if (wakeModeEnabled && !wakeRecognition && !isSpeaking && !isSending && !singleRecognition) {
       startWakeListener();
     }
-    window.removeEventListener('pointerdown', unlockOnFirstInteraction);
-    window.removeEventListener('touchstart', unlockOnFirstInteraction);
-    window.removeEventListener('keydown', unlockOnFirstInteraction);
   };
 
-  window.addEventListener('pointerdown', unlockOnFirstInteraction, { once: true });
-  window.addEventListener('touchstart', unlockOnFirstInteraction, { once: true });
-  window.addEventListener('keydown', unlockOnFirstInteraction, { once: true });
+  window.addEventListener('pointerdown', unlockAudioAndMic);
+  window.addEventListener('touchstart', unlockAudioAndMic);
+  window.addEventListener('keydown', unlockAudioAndMic);
 }
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && wakeModeEnabled && !wakeRecognition && !isSpeaking && !isSending) {
-    startWakeListener();
+    scheduleWakeRestart(150);
   }
 });
 
@@ -961,8 +993,8 @@ function toggleWakeMode() {
   if (wakeModeEnabled) {
     awaitingCommandAfterWake = false;
     updateWakeUI(true, 'WAKE: ON');
-    speakSweetly(`Wake mode active ${USER_NAME}. ಯಾವಾಗ ಬೇಕಾದರೂ Jarvis ಎಂದು ಕರೆಯಿರಿ.`, () => {
-      startWakeListener();
+    speakSweetly(`Yes ${USER_NAME}, wake mode is active. Say Jarvis anytime.`, () => {
+      scheduleWakeRestart(100);
     });
   } else {
     awaitingCommandAfterWake = false;
@@ -972,6 +1004,7 @@ function toggleWakeMode() {
   }
 }
 
+// Single-tap composer mic button (supports Kannada + English commands)
 function startSingleVoiceInput() {
   if (!SpeechRecognition) {
     alert('Speech recognition is not supported in this browser.');
@@ -981,6 +1014,7 @@ function startSingleVoiceInput() {
     try { singleRecognition.stop(); } catch (e) {}
     singleRecognition = null;
     micBtn?.classList.remove('listening');
+    if (wakeModeEnabled) scheduleWakeRestart(150);
     return;
   }
 
@@ -990,9 +1024,11 @@ function startSingleVoiceInput() {
   rec.continuous = false;
   rec.interimResults = true;
 
+  let capturedFinal = '';
+
   rec.onstart = () => {
     micBtn?.classList.add('listening');
-    if (input) input.placeholder = 'ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡಿ... (Listening...)';
+    if (input) input.placeholder = 'ಮಾತನಾಡಿ... (Listening...)';
   };
 
   rec.onresult = event => {
@@ -1002,28 +1038,37 @@ function startSingleVoiceInput() {
     }
     if (input) input.value = transcript;
     if (event.results[event.results.length - 1]?.isFinal) {
-      sendMessage(transcript);
+      capturedFinal = transcript.trim();
     }
   };
 
-  rec.onerror = () => {
+  rec.onerror = event => {
     micBtn?.classList.remove('listening');
     if (input) input.placeholder = `Message J.A.R.V.I.S, ${USER_NAME}...`;
+    if (event.error === 'not-allowed') {
+      alert('Please allow microphone permission in Chrome site settings.');
+    }
   };
 
   rec.onend = () => {
     singleRecognition = null;
     micBtn?.classList.remove('listening');
+    const textToSend = (capturedFinal || input?.value || '').trim();
     if (input) input.placeholder = `Message J.A.R.V.I.S, ${USER_NAME}...`;
-    if (wakeModeEnabled && !isSpeaking && !isSending) {
-      startWakeListener();
+    if (textToSend) {
+      sendMessage(textToSend);
+    } else if (wakeModeEnabled && !isSpeaking && !isSending) {
+      scheduleWakeRestart(150);
     }
   };
 
   singleRecognition = rec;
   try {
     rec.start();
-  } catch (e) {}
+  } catch (e) {
+    singleRecognition = null;
+    micBtn?.classList.remove('listening');
+  }
 }
 
 // ===== 7. EVENT LISTENERS =====
@@ -1065,7 +1110,7 @@ voiceSelect?.addEventListener('change', e => {
   const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID);
   const labelName = preset ? preset.label.replace(/^\d+\.\s*/, '') : 'updated';
   speakSweetly(`Hello ${USER_NAME}! ನನ್ನ ಹೊಸ ಧ್ವನಿ ${labelName} ಆಗಿದೆ.`, () => {
-    if (wakeModeEnabled) startWakeListener();
+    if (wakeModeEnabled) scheduleWakeRestart(150);
   });
 });
 
@@ -1073,7 +1118,7 @@ testVoiceBtn?.addEventListener('click', () => {
   const preset = VOICE_PRESETS.find(v => v.id === SELECTED_VOICE_ID);
   const labelName = preset ? preset.label.replace(/^\d+\.\s*/, '') : 'J.A.R.V.I.S';
   speakSweetly(`Hello ${USER_NAME}, this is ${labelName}. ನಮಸ್ಕಾರ ${USER_NAME}, ನಾನು ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ಸಿದ್ಧವಾಗಿದ್ದೇನೆ.`, () => {
-    if (wakeModeEnabled) startWakeListener();
+    if (wakeModeEnabled) scheduleWakeRestart(150);
   });
 });
 
